@@ -1,7 +1,4 @@
-
 #include "FoodVendor.h"
-
-
 
 FoodVendor::FoodVendor(const std::string& name, int capacity, int stockLevel) : EventUnit(name, capacity) {
 
@@ -11,7 +8,7 @@ FoodVendor::FoodVendor(const std::string& name, int capacity, int stockLevel) : 
 void FoodVendor::reportStatus() const{
 
     printCommonStatus();
-    std::cout << ", Stock Level" << stockLevel << "\n";
+    std::cout << ", Stock Level: " << stockLevel << "\n";
 }
 
 void FoodVendor::update(const Notice& notice){

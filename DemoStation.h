@@ -10,7 +10,12 @@ private:
     int stationsAvailable;
 
 public:
-    /** @brief Constructs a DemoStation with a name, capacity, and available stations. */
+    /**
+     * @brief Constructs a DemoStation with a name, capacity, and available stations.
+     * @param name The station's display name.
+     * @param capacity The station's fixed capacity.
+     * @param stationsAvailable The number of demo stations available at construction.
+     */
     DemoStation(const std::string& name, int capacity, int stationsAvailable);
 
     /** @brief Prints the station's status including available units. */
@@ -19,13 +24,10 @@ public:
     /** @brief Closes the station and resets available units to zero. */
     void close() override;
 
-    /** @brief Reacts to notices reduces stations on capacity alerts. */
-    void update(const Notice& notice) override;
-
     /**
-     * @brief Returns the fixed capacity of the demo station.
-     * @return The capacity.
+     * @brief Reacts to notices, reduces stations on capacity alerts.
+     * @param notice The incoming notice.
      */
-    int getCapacity() const;
+    void update(const Notice& notice) override;
 };
 #endif

@@ -12,8 +12,7 @@ EventControl::~EventControl() {
 
 void EventControl::attach(Observer* observer) {
     if (observer == nullptr) return;
-    
-    // Prevent duplicate registration
+
     auto it = std::find(observerList.begin(), observerList.end(), observer);
     if (it == observerList.end()) {
         observerList.push_back(observer);
@@ -27,7 +26,7 @@ void EventControl::detach(Observer* observer) {
 
 void EventControl::notify() {
     if (currentNotice == nullptr) return;
-    
+
     for (Observer* obs : observerList) {
         obs->update(*currentNotice);
     }
@@ -37,7 +36,7 @@ void EventControl::issueNotice(NoticeType type, const std::string& message) {
     if (currentNotice != nullptr) {
         delete currentNotice;
     }
-    
+
     // Hold as internal state before notifying
     currentNotice = new Notice(type, message);
     this->lastNoticeType = type;

@@ -14,7 +14,13 @@ private:
     const Notice* currentNotice;
 
 public:
-    /** @brief Constructs the group with a name and a capacity threshold. */
+    /**
+     * @brief Constructs the group with a name and a capacity threshold.
+     * @param name The group's display name.
+     * @param capacityThreshold The aggregate capacity at/above which this
+     * group treats a CAPACITY_ALERT as significant enough to rebroadcast
+     * (see update()).
+     */
     EventGroup(const std::string& name, int capacityThreshold);
 
     /**
@@ -26,11 +32,15 @@ public:
      * from its previous Subject registrations; Composite ownership and
      * Observer registration are managed as separate concerns.
      *
-     * @param c The component to add. Takes ownership.
+     * @param c The component to add. Takes ownership. Ignored if nullptr.
      */
     void add(EventComponent* c);
 
-    /** @brief Removes a child component from this group, releasing ownership. */
+    /**
+     * @brief Removes a child component from this group, releasing ownership.
+     * @param c The component to remove. Not deleted; caller/new owner
+     * becomes responsible for it. Safe no-op if not present.
+     */
     void remove(EventComponent* c);
 
     /** @brief Opens the group and recursively opens all children. */
@@ -48,19 +58,41 @@ public:
      */
     int getCapacity() const override;
 
-    /** @brief Registers an observer to this group's notification list. */
+    /**
+     * @brief Registers an observer to this group's notification list.
+     * @param o Observer to register. Duplicate registration is ignored.
+     */
     void attach(Observer* o) override;
 
-    /** @brief Removes an observer from this group's notification list. */
+    /**
+     * @brief Removes an observer from this group's notification list.
+     * @param o Observer to remove. Safe no-op if not registered.
+     */
     void detach(Observer* o) override;
 
     /** @brief Pushes the current notice to all registered observers. */
     void notify() override;
 
-    /** @brief Receives a notice from a parent Subject and rebroadcasts it to children. */
+    /**
+     * @brief Receives a notice from a parent Subject and rebroadcasts it to children.
+     *
+     * For a CAPACITY_ALERT, this group only rebroadcasts to its own
+     * observers if its live aggregate capacity has reached the group's
+     * threshold; all other notice types are always rebroadcast.
+     *
+     * @param n The incoming notice. Only guaranteed valid for the duration
+     * of this call and any notify() triggered synchronously from within it.
+     */
     void update(const Notice& n) override;
 
-    /** @brief Transfers a child to a destination group, updating ownership. */
+    /**
+     * @brief Transfers a child to a destination group, updating ownership
+     * and, if the child is also an Observer, its registration with this group.
+     * @param child The component currently owned by this group.
+     * @param destination The group that should take over ownership.
+     * @return true if the transfer happened, false if child/destination
+     * were null or child was not found in this group.
+     */
     bool transferChild(EventComponent* child, EventGroup* destination);
 
     /** @brief Virtual destructor, recursively deletes all owned children. */

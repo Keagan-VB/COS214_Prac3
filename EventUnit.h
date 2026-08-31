@@ -19,7 +19,11 @@ protected:
     void printCommonStatus() const;
 
 public:
-    /** @brief Constructs the unit with a name, capacity, and default operational state. */
+    /**
+     * @brief Constructs the unit with a name, capacity, and default operational state.
+     * @param name The unit's display name.
+     * @param capacity The unit's fixed capacity.
+     */
     EventUnit(const std::string& name, int capacity);
 
     /** @brief Opens the unit, marking it operational. */
@@ -34,10 +38,21 @@ public:
      */
     int getCapacity() const override;
 
-    /** @brief Reacts to notices, handling OPEN/CLOSE and maintenance gates. */
+    /**
+     * @brief Reacts to notices, handling OPEN/CLOSE and maintenance gates.
+     *
+     * While maintenanceMode is set, all notices except EVACUATE are
+     * ignored at this base level. Concrete leaves that override update()
+     * should call EventUnit::update(notice) first to keep this behaviour.
+     *
+     * @param notice The incoming notice.
+     */
     void update(const Notice& notice) override;
 
-    /** @brief Toggles the maintenance mode state for this unit. */
+    /**
+     * @brief Toggles the maintenance mode state for this unit.
+     * @param inMaintenance true to put the unit into maintenance mode.
+     */
     void setMaintenanceMode(bool inMaintenance);
 
     /** @brief Virtual destructor for safe polymorphic destruction. */

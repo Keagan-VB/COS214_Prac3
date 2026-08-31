@@ -1,7 +1,4 @@
-
 #include "Shuttle.h"
-
-
 
 Shuttle::Shuttle(const std::string& name, int capacity, std::string route) : EventUnit(name, capacity) {
 
@@ -11,7 +8,7 @@ Shuttle::Shuttle(const std::string& name, int capacity, std::string route) : Eve
 void Shuttle::reportStatus() const{
 
     printCommonStatus();
-    std::cout << ", Route:" << route << "\n";
+    std::cout << ", Route: " << route << "\n";
 }
 
 void Shuttle::update(const Notice& notice){

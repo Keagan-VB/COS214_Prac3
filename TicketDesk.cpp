@@ -1,7 +1,4 @@
-
 #include "TicketDesk.h"
-
-
 
 TicketDesk::TicketDesk(const std::string& name, int capacity, bool admitting) : EventUnit(name, capacity) {
 
@@ -11,7 +8,7 @@ TicketDesk::TicketDesk(const std::string& name, int capacity, bool admitting) : 
 void TicketDesk::reportStatus() const{
 
     printCommonStatus();
-    std::cout << ", Admitting:" << admitting << "\n";
+    std::cout << ", Admitting: " << admitting << "\n";
 }
 
 void TicketDesk::close(){

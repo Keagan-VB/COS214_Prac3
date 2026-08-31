@@ -1,7 +1,4 @@
-
 #include "TournamentArena.h"
-
-
 
 TournamentArena::TournamentArena(const std::string& name, int capacity, std::string currentMatch) : EventUnit(name, capacity) {
 
@@ -11,10 +8,8 @@ TournamentArena::TournamentArena(const std::string& name, int capacity, std::str
 void TournamentArena::reportStatus() const{
 
     printCommonStatus();
-    std::cout << ", Current Match:" << currentMatch << "\n";
+    std::cout << ", Current Match: " << currentMatch << "\n";
 }
-
-
 
 void TournamentArena::update(const Notice& notice){
 

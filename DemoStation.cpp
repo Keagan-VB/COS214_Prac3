@@ -1,7 +1,4 @@
-
 #include "DemoStation.h"
-
-
 
 DemoStation::DemoStation(const std::string& name, int capacity, int stationsAvailable) : EventUnit(name, capacity) {
 
@@ -11,7 +8,7 @@ DemoStation::DemoStation(const std::string& name, int capacity, int stationsAvai
 void DemoStation::reportStatus() const{
 
     printCommonStatus();
-    std::cout << ", Stations Available:" << stationsAvailable << "\n";
+    std::cout << ", Stations Available: " << stationsAvailable << "\n";
 }
 
 void DemoStation::close(){
