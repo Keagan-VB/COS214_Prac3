@@ -20,6 +20,9 @@
 #include "Shuttle.h"
 #include "DemoStation.h"
 
+#include "EventScheduler.h"
+#include "EventLog.h"
+
 #include <iostream>
 #include <string>
 
@@ -30,8 +33,7 @@ namespace {
 } // namespace
 
 int main() {
-    //testing main
-    /*std::cout << "EventFlow: City Lights Festival \n\n";
+    std::cout << "EventFlow: City Lights Festival\n";
 
     banner("Constructing the Composite tree");
 
@@ -65,6 +67,7 @@ int main() {
                  "{riverShuttle, riverDemo}}\n";
     std::cout << "  (3 levels of nesting below root, 6 distinct concrete leaf types)\n";
 
+    
     banner("Registering observers (cascade wiring)");
 
     EventControl control;
@@ -86,111 +89,113 @@ int main() {
     std::cout << "  control -> rootFestival -> {mainStageZone, riverZone} -> ... "
                  "(5 levels of cascading Observer registration)\n";
 
-    banner("Safety checks: duplicate attach() and detach() of an unregistered observer");
-    control.attach(&rootFestival); 
+    control.attach(&rootFestival); // duplicate; must not register rootFestival twice
     DemoStation spareUnit("Spare Booth (not in tree)", 10, 2);
-    mainStageZone->detach(&spareUnit); 
-    std::cout << "  attach() duplicate and detach() of an unattached observer both handled safely.\n";
+    mainStageZone->detach(&spareUnit); // never attached; must be a safe no-op
+    std::cout << "  Safety checks passed: duplicate attach() and detach() of an "
+                 "unregistered observer both handled safely.\n";
 
     
-    banner("Composite traversal/query: aggregate capacity + status report");
-    std::cout << "  rootFestival.getCapacity() = " << rootFestival.getCapacity() << "\n  ";
-    rootFestival.reportStatus();
-    std::cout << "\n";
+                 
+    banner("Building the run schedule");
 
-    
-    banner("Notice: OPEN (cascades through every level)");
-    control.issueNotice(NoticeType::OPEN, "Gates are open, welcome to the festival.");
+    EventLog log;
+    EventScheduler scheduler(&log);
 
-    banner("Notice: CAPACITY_ALERT (gated per-group by live capacity vs threshold)");
-    
+    scheduler.addStep("Composite traversal/query: capacity + status report", [&]() {
+        std::cout << "  rootFestival.getCapacity() = " << rootFestival.getCapacity() << "\n  ";
+        rootFestival.reportStatus();
+        std::cout << "\n";
+    });
 
-    control.issueNotice(NoticeType::CAPACITY_ALERT, "Attendance is climbing fast.");
-    std::cout << "  Front Gate reacted (reachable, threshold met):     ";
-    frontGate->reportStatus();
-    std::cout << "  Taco Vendor reacted (reachable, threshold met):    ";
-    tacoVendor->reportStatus();
-    std::cout << "  River Demo Booth did NOT react (riverZone gated):  ";
-    riverDemo->reportStatus();
+    scheduler.scheduleNotice(control, NoticeType::OPEN, "Gates are open, welcome to the festival.");
 
-    banner("Notice: WEATHER_ALERT");
-    control.issueNotice(NoticeType::WEATHER_ALERT, "Storm cell approaching from the west.");
-    std::cout << "  Main Stage paused:\n  ";
-    mainStage->reportStatus();
-    std::cout << "  mainStage.getCapacity() = " << mainStage->getCapacity() << "\n";
-    std::cout << "  River Shuttle rerouted (WEATHER_ALERT is never gated): ";
-    riverShuttle->reportStatus();
+    scheduler.addStep("CAPACITY_ALERT (1st pass) + per-group gating check", [&]() {
+        
+        control.issueNotice(NoticeType::CAPACITY_ALERT, "Attendance is climbing fast.");
+        std::cout << "  Front Gate reacted (reachable, threshold met):     ";
+        frontGate->reportStatus();
+        std::cout << "  Taco Vendor reacted (reachable, threshold met):    ";
+        tacoVendor->reportStatus();
+        std::cout << "  River Demo Booth did NOT react (riverZone gated):  ";
+        riverDemo->reportStatus();
+    });
 
-    
-    banner("Registration change: detaching Medical Team from Main Stage Zone");
-    mainStageZone->detach(medicalTeam);
-    std::cout << "  Issuing SCHEDULE_CHANGE - Medical Team is detached, so it will not react.\n";
-    control.issueNotice(NoticeType::SCHEDULE_CHANGE, "Set times shifted by 15 minutes.");
-    mainStageZone->attach(medicalTeam); 
+    scheduler.addStep("WEATHER_ALERT (never gated, reaches every branch)", [&]() {
+        control.issueNotice(NoticeType::WEATHER_ALERT, "Storm cell approaching from the west.");
+        std::cout << "  Main Stage paused: ";
+        mainStage->reportStatus();
+        std::cout << "  River Shuttle rerouted: ";
+        riverShuttle->reportStatus();
+    });
 
-    
-    banner("Original feature: maintenance mode gates notices except EVACUATE");
-    riverDemo->setMaintenanceMode(true);
-    std::cout << "  riverDemo.getCapacity() while in maintenance = " << riverDemo->getCapacity() << "\n";
-    std::cout << "  Issuing PAUSE - riverDemo should ignore it while under maintenance.\n";
-    control.issueNotice(NoticeType::PAUSE, "Temporary pause while the schedule settles.");
-    banner("revokeLastNotice() after PAUSE (expect RESUME)");
-    control.revokeLastNotice();
-    riverDemo->setMaintenanceMode(false);
+    scheduler.addStep("Registration change: detach Medical Team from Main Stage Zone", [&]() {
+        mainStageZone->detach(medicalTeam);
+    });
+    scheduler.scheduleNotice(control, NoticeType::SCHEDULE_CHANGE, "Set times shifted by 15 minutes.");
+    scheduler.addStep("Registration change: reattach Medical Team", [&]() {
+        mainStageZone->attach(medicalTeam);
+    });
 
-    
-    banner("Runtime reorganisation: moving Taco Vendor from Main Stage Zone to River Zone");
-    std::cout << "  Before transfer -> mainStageZone.getCapacity() = " << mainStageZone->getCapacity()
-              << ", riverZone.getCapacity() = " << riverZone->getCapacity() << "\n";
-    bool moved = mainStageZone->transferChild(tacoVendor, riverZone);
-    std::cout << "  transferChild() returned " << (moved ? "true" : "false")
-              << " (moves BOTH Composite ownership and Observer registration)\n";
-    std::cout << "  After transfer  -> mainStageZone.getCapacity() = " << mainStageZone->getCapacity()
-              << ", riverZone.getCapacity() = " << riverZone->getCapacity() << "\n";
+    scheduler.addStep("Feature: enable maintenance mode on River Demo Booth", [&]() {
+        riverDemo->setMaintenanceMode(true);
+        std::cout << "  riverDemo.getCapacity() while in maintenance = " << riverDemo->getCapacity() << "\n";
+    });
+    scheduler.scheduleNotice(control, NoticeType::PAUSE, "Temporary pause while the schedule settles.");
+    scheduler.addStep("Feature: revokeLastNotice() after PAUSE (expect RESUME)", [&]() {
+        control.revokeLastNotice();
+    });
+    scheduler.addStep("Feature: disable maintenance mode on River Demo Booth", [&]() {
+        riverDemo->setMaintenanceMode(false);
+    });
 
-    banner("Notice: CAPACITY_ALERT again (riverZone's live capacity changed by the reorg)");
-    
+    scheduler.addStep("Runtime reorganisation: transfer Taco Vendor to River Zone", [&]() {
+        std::cout << "  Before -> mainStageZone.getCapacity() = " << mainStageZone->getCapacity()
+                  << ", riverZone.getCapacity() = " << riverZone->getCapacity() << "\n";
+        bool moved = mainStageZone->transferChild(tacoVendor, riverZone);
+        std::cout << "  transferChild() returned " << (moved ? "true" : "false")
+                  << " (moves BOTH Composite ownership and Observer registration)\n";
+        std::cout << "  After  -> mainStageZone.getCapacity() = " << mainStageZone->getCapacity()
+                  << ", riverZone.getCapacity() = " << riverZone->getCapacity() << "\n";
+    });
 
-    control.issueNotice(NoticeType::CAPACITY_ALERT, "Attendance still climbing.");
-    std::cout << "  River Demo Booth now reacts (riverZone threshold met after reorg): ";
-    riverDemo->reportStatus();
-    std::cout << "  Taco Vendor reacted a second time (now under riverZone):           ";
-    tacoVendor->reportStatus();
+    scheduler.addStep("CAPACITY_ALERT (2nd pass, riverZone now over threshold)", [&]() {
+        control.issueNotice(NoticeType::CAPACITY_ALERT, "Attendance still climbing.");
+        std::cout << "  River Demo Booth now reacts: ";
+        riverDemo->reportStatus();
+        std::cout << "  Taco Vendor reacted a second time (now under riverZone): ";
+        tacoVendor->reportStatus();
+    });
 
-    
-    banner("Notice: CLOSE");
-    control.issueNotice(NoticeType::CLOSE, "Event closing for the night.");
-    std::cout << "  Front Gate stopped admitting: ";
-    frontGate->reportStatus();
-    banner("revokeLastNotice() after CLOSE (expect OPEN)");
-    control.revokeLastNotice();
-    std::cout << "  Front Gate admitting again:   ";
-    frontGate->reportStatus();
+    scheduler.scheduleNotice(control, NoticeType::CLOSE, "Event closing for the night.");
+    scheduler.addStep("revokeLastNotice() after CLOSE (expect OPEN)", [&]() {
+        control.revokeLastNotice();
+    });
 
-    
-    banner("Notice: EVACUATE (final safety cascade)");
-    control.issueNotice(NoticeType::EVACUATE, "Emergency: please evacuate the venue calmly.");
-    std::cout << "  Medical Team staffed up for evacuation: ";
-    medicalTeam->reportStatus();
-    banner("revokeLastNotice() after EVACUATE (not reversible, no state should change)");
-    control.revokeLastNotice();
-    std::cout << "  Medical Team unchanged:                 ";
-    medicalTeam->reportStatus();
+    scheduler.scheduleNotice(control, NoticeType::EVACUATE, "Emergency: please evacuate the venue calmly.");
+    scheduler.addStep("revokeLastNotice() after EVACUATE (not reversible, no-op)", [&]() {
+        control.revokeLastNotice();
+        std::cout << "  Medical Team unchanged: ";
+        medicalTeam->reportStatus();
+    });
 
-    banner("Post-evacuation status report (full recursive traversal)");
-    std::cout << "  ";
-    rootFestival.reportStatus();
-    std::cout << "\n";
+    scheduler.addStep("Post-run status report (full recursive traversal)", [&]() {
+        std::cout << "  ";
+        rootFestival.reportStatus();
+        std::cout << "\n";
+    });
 
-    
-    banner("Clean shutdown");
-    control.detach(&rootFestival);
-    
-    std::cout << "  (rootFestival destructor runs at end of scope, recursively "
+    scheduler.addStep("Clean shutdown: detach rootFestival from EventControl", [&]() {
+        control.detach(&rootFestival);
+    });
+
+    banner("Running the schedule");
+    scheduler.runAll();
+
+    log.print("EventFlow Run Log");
+
+    std::cout << "\n  (rootFestival destructor runs at end of scope, recursively "
                  "deleting the whole owned subtree exactly once)\n";
-
-    std::cout << "\n=== EventFlow run complete ===\n";
-    return 0;*/
-
-    //demo main
+    std::cout << "\nEventFlow run complete\n";
+    return 0;
 }
