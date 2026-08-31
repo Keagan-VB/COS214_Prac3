@@ -15,4 +15,4 @@ enum class NoticeType {
     EVACUATE
 };
 
-#endif // NOTICETYPE_H
+#endif

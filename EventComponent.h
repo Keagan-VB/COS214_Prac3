@@ -67,4 +67,4 @@ protected:
     int capacity;
 };
 
-#endif // EVENTCOMPONENT_H
+#endif
