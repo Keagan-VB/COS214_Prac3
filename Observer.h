@@ -20,4 +20,4 @@ public:
     virtual ~Observer() = default;
 };
 
-#endif // OBSERVER_H
+#endif

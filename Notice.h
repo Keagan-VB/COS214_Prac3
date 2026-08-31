@@ -33,4 +33,4 @@ private:
     std::string message;
 };
 
-#endif // NOTICE_H
+#endif
